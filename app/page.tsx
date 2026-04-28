@@ -156,7 +156,7 @@ export default function MathTrackerPage() {
   }
 
   function addPupil() {
-    const cls = newClass === '__new__' ? newClassInput.trim() : newClass
+    const cls = (newClass && newClass !== '__new__') ? newClass : newClassInput.trim()
     if (!newName.trim() || !newLevel || !cls) return
     const pupil: Pupil = { id: generateId(), name: newName.trim(), level: newLevel, className: cls, stamps: [] }
     save([...pupils, pupil])

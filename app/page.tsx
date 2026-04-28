@@ -113,14 +113,23 @@ export default function MathTrackerPage() {
   const [newClass, setNewClass] = useState('')
   const [newClassInput, setNewClassInput] = useState('')
   const [addSuccess, setAddSuccess] = useState(false)
+  const [dbError, setDbError] = useState('')
 
   // Real-time listener — auto-syncs across all devices
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'pupils'), snapshot => {
-      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Pupil))
-      setPupils(data)
-      setLoading(false)
-    })
+    const unsub = onSnapshot(
+      collection(db, 'pupils'),
+      snapshot => {
+        const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Pupil))
+        setPupils(data)
+        setLoading(false)
+        setDbError('')
+      },
+      error => {
+        setDbError(error.message)
+        setLoading(false)
+      }
+    )
     return () => unsub()
   }, [])
 
@@ -160,15 +169,19 @@ export default function MathTrackerPage() {
   async function addPupil() {
     const cls = (newClass && newClass !== '__new__') ? newClass : newClassInput.trim()
     if (!newName.trim() || !newLevel || !cls) return
-    await addDoc(collection(db, 'pupils'), {
-      name: newName.trim(),
-      level: newLevel,
-      className: cls,
-      stamps: [],
-    })
-    setNewName(''); setNewLevel(''); setNewClass(''); setNewClassInput('')
-    setAddSuccess(true)
-    setTimeout(() => setAddSuccess(false), 3000)
+    try {
+      await addDoc(collection(db, 'pupils'), {
+        name: newName.trim(),
+        level: newLevel,
+        className: cls,
+        stamps: [],
+      })
+      setNewName(''); setNewLevel(''); setNewClass(''); setNewClassInput('')
+      setAddSuccess(true)
+      setTimeout(() => setAddSuccess(false), 3000)
+    } catch (e: unknown) {
+      setDbError(e instanceof Error ? e.message : 'Failed to add pupil')
+    }
   }
 
   async function removePupil(id: string) {
@@ -235,6 +248,14 @@ export default function MathTrackerPage() {
             {loading ? 'Connecting...' : `${pupils.length} players enrolled`}
           </p>
         </div>
+
+        {/* Error banner */}
+        {dbError && (
+          <div className="rounded-xl px-5 py-4 mb-6 text-sm" style={{ background: '#2a0a0a', border: '2px solid #ff2d78', color: '#ff2d78' }}>
+            <p className="arcade-font mb-1" style={{ fontSize: '8px' }}>⚠ DATABASE ERROR</p>
+            <p style={{ fontFamily: 'monospace', fontSize: '12px' }}>{dbError}</p>
+          </div>
+        )}
 
         {/* Loading state */}
         {loading && (
